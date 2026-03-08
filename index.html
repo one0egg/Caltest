@@ -3,721 +3,533 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cable Sizing Calculator</title>
+  <title>Nexans Cable Calculator</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root {
-      --bg: #0b1220;
-      --panel: #121a2b;
-      --panel-2: #18233a;
-      --line: #2a395b;
-      --text: #e8eefc;
-      --muted: #a8b3cf;
+      --bg: #0c1322;
+      --panel: #121c31;
+      --line: #2b3a5f;
+      --text: #e7eefc;
+      --muted: #a9b6d3;
       --accent: #4f8cff;
-      --accent-2: #73e0c1;
-      --danger: #ff7a7a;
-      --warning: #ffcc66;
       --ok: #73e0c1;
-      --shadow: 0 20px 50px rgba(0,0,0,0.28);
-      --radius: 18px;
+      --warn: #ffcc66;
+      --bad: #ff7a7a;
     }
-
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: linear-gradient(180deg, #08101d 0%, #0f1728 100%);
+      background: linear-gradient(180deg, #0a1020 0%, #0f1728 100%);
       color: var(--text);
     }
-
-    .shell {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 28px;
-    }
-
-    .hero {
-      display: grid;
-      grid-template-columns: 1.4fr 0.8fr;
-      gap: 20px;
-      margin-bottom: 22px;
-    }
-
+    .wrap { max-width: 1440px; margin: 0 auto; padding: 22px; }
+    .hero, .layout { display: grid; gap: 18px; }
+    .hero { grid-template-columns: 1.4fr 1fr; margin-bottom: 18px; }
+    .layout { grid-template-columns: minmax(0, 2fr) minmax(340px, 1fr); }
     .card {
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      background: rgba(18, 28, 49, 0.96);
       border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-    }
-
-    .hero-main {
-      padding: 26px;
-    }
-
-    .hero h1 {
-      margin: 0 0 10px;
-      font-size: clamp(30px, 4vw, 44px);
-      line-height: 1.05;
-      letter-spacing: -0.02em;
-    }
-
-    .hero p {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.6;
-      max-width: 72ch;
-    }
-
-    .hero-side {
-      padding: 22px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      justify-content: center;
-    }
-
-    .pill-row, .tab-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .pill, .tab {
-      border: 1px solid var(--line);
-      color: var(--text);
-      background: var(--panel-2);
-      border-radius: 999px;
-      padding: 10px 14px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: 0.2s ease;
-    }
-
-    .tab.active, .pill.active {
-      background: linear-gradient(180deg, var(--accent), #2f67d9);
-      border-color: transparent;
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 2fr) minmax(360px, 0.95fr);
-      gap: 20px;
-      align-items: start;
-    }
-
-    .panel {
+      border-radius: 18px;
       padding: 20px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.28);
     }
-
-    .section + .section {
-      margin-top: 18px;
-    }
-
-    .section-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-
-    .section h2, .section h3 {
-      margin: 0;
-      font-size: 18px;
-      letter-spacing: -0.01em;
-    }
-
-    .muted {
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .grid {
-      display: grid;
-      gap: 14px;
-    }
-
+    h1 { margin: 0 0 10px; font-size: clamp(28px, 4vw, 42px); line-height: 1.05; }
+    h2, h3 { margin: 0; }
+    p, .muted { color: var(--muted); line-height: 1.55; }
+    .grid { display: grid; gap: 14px; }
     .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-
-    label {
-      display: block;
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 6px;
+    label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--muted); }
+    input, select, button {
+      width: 100%; border: 1px solid var(--line); background: #0f1729; color: var(--text);
+      border-radius: 12px; padding: 11px 12px; font-size: 14px;
     }
-
-    input, select {
-      width: 100%;
-      border: 1px solid var(--line);
-      background: #0f1729;
-      color: var(--text);
-      border-radius: 12px;
-      padding: 12px 14px;
-      font-size: 15px;
-      outline: none;
+    button { cursor: pointer; font-weight: 600; }
+    .btn-primary { background: linear-gradient(180deg, var(--accent), #2f67d9); border-color: transparent; }
+    .tabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    .tab {
+      width: auto; padding: 10px 14px; border-radius: 999px; background: #16233f;
     }
-
-    input:focus, select:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(79,140,255,0.18);
-    }
-
-    .switch {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 14px;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: #0f1729;
-    }
-
-    .switch input {
-      width: 20px;
-      height: 20px;
-      accent-color: var(--accent);
-    }
-
-    .result-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .metric {
-      padding: 16px;
-      border-radius: 16px;
-      background: #0f1729;
-      border: 1px solid var(--line);
-    }
-
-    .metric .label {
-      color: var(--muted);
-      font-size: 13px;
-      margin-bottom: 8px;
-    }
-
-    .metric .value {
-      font-size: 26px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-
-    .status {
-      margin-top: 14px;
-      padding: 14px 16px;
-      border-radius: 14px;
-      font-size: 14px;
+    .tab.active { background: linear-gradient(180deg, var(--accent), #2f67d9); }
+    .section + .section { margin-top: 18px; }
+    .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px; }
+    .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .metric { padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: #0f1729; }
+    .metric .k { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+    .metric .v { font-size: 24px; font-weight: 700; }
+    .status, .codebox {
+      margin-top: 12px; padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: #0f1729;
       line-height: 1.5;
-      border: 1px solid var(--line);
     }
-
-    .status.ok { background: rgba(115,224,193,0.08); color: #dffcf4; }
-    .status.warn { background: rgba(255,204,102,0.08); color: #fff4d4; }
-    .status.bad { background: rgba(255,122,122,0.08); color: #ffe0e0; }
-
-    .actions {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-top: 18px;
+    .status.ok { border-color: rgba(115,224,193,0.5); color: #dffcf4; }
+    .status.warn { border-color: rgba(255,204,102,0.5); color: #fff4d4; }
+    .status.bad { border-color: rgba(255,122,122,0.5); color: #ffe0e0; }
+    .codebox { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    .actions { display: flex; gap: 10px; margin-top: 12px; }
+    .actions button { width: auto; min-width: 130px; }
+    .table-wrap {
+      margin-top: 12px; overflow: auto; border: 1px solid var(--line); border-radius: 14px; background: #0f1729;
     }
-
-    button.action {
-      border: 0;
-      border-radius: 12px;
-      padding: 12px 16px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .primary { background: linear-gradient(180deg, var(--accent), #2f67d9); color: white; }
-    .secondary { background: #1a2742; color: var(--text); border: 1px solid var(--line); }
-
-    .note {
-      margin-top: 16px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.6;
-    }
-
-    .hide { display: none; }
-
-    @media (max-width: 1080px) {
-      .hero, .layout { grid-template-columns: 1fr; }
-    }
-
-    @media (max-width: 720px) {
-      .shell { padding: 16px; }
-      .grid.cols-2, .grid.cols-3, .grid.cols-4, .result-grid { grid-template-columns: 1fr; }
-    }
+    table { width: 100%; border-collapse: collapse; min-width: 980px; }
+    th, td { padding: 9px 10px; border-bottom: 1px solid #203050; text-align: left; font-size: 12px; }
+    th { position: sticky; top: 0; background: #16233f; color: #d6e4ff; z-index: 1; }
+    tr:last-child td { border-bottom: none; }
+    .small { font-size: 12px; color: var(--muted); }
+    .pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; font-size: 12px; color: var(--muted); background: #13203a; }
+    @media (max-width: 1100px) { .hero, .layout { grid-template-columns: 1fr; } }
+    @media (max-width: 760px) { .grid.cols-2, .grid.cols-3, .grid.cols-4, .metrics { grid-template-columns: 1fr; } .wrap { padding: 16px; } }
   </style>
 </head>
 <body>
-  <div class="shell">
-    <section class="hero">
-      <div class="card hero-main">
-        <div class="pill-row" style="margin-bottom:14px;">
-          <span class="pill active">AS/NZS inspired</span>
-          <span class="pill">NZ-ready layout</span>
-          <span class="pill">LV + HV</span>
-        </div>
-        <h1>Cable Sizing Calculator</h1>
-        <p>
-          A clean-room calculator interface inspired by the structure of jCalc’s cable sizing page, but rebuilt as a standalone single-file web app for GitHub Pages. It includes load input, cable selection, derating, voltage drop, and simplified short-circuit checks.
-        </p>
+<div class="wrap">
+  <section class="hero">
+    <div class="card">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <span class="pill">Data-driven workbook architecture</span>
+        <span class="pill">Editable Excel source</span>
+        <span class="pill">LV / MV / HV ready</span>
       </div>
-      <div class="card hero-side">
-        <div><strong>Included in this clone</strong></div>
-        <div class="muted">Tabbed LV / HV workflow, form sections, quick result summary, JSON-style cable library, and a GitHub-friendly single file.</div>
-        <div class="muted">You can later replace the simplified assumptions with full AS/NZS 3008 datasets and exact standard logic.</div>
-      </div>
-    </section>
-
-    <div class="tab-row" style="margin-bottom:18px;">
-      <button class="tab active" data-tab="lv">LV Cable</button>
-      <button class="tab" data-tab="hv">HV Cable</button>
+      <h1>Nexans Cable Calculator</h1>
+      <p>
+        This version reads its cable library from <strong>cable_data.xlsx</strong>. You can manually extend the workbook later
+        without changing the calculation logic, as long as you keep the column structure the same.
+      </p>
     </div>
-
-    <div class="layout">
-      <div class="card panel">
-        <div class="section">
-          <div class="section-header">
-            <h2>Load & Standard</h2>
-            <span class="muted">Core project inputs</span>
-          </div>
-          <div class="grid cols-4">
-            <div>
-              <label for="region">Standard region</label>
-              <select id="region">
-                <option value="nz">New Zealand conditions</option>
-                <option value="au">Australian conditions</option>
-              </select>
-            </div>
-            <div>
-              <label for="phase">Load phase</label>
-              <select id="phase">
-                <option value="3">3 phase AC</option>
-                <option value="1">1 phase AC</option>
-                <option value="dc">DC</option>
-              </select>
-            </div>
-            <div>
-              <label for="voltage">Voltage (V)</label>
-              <input id="voltage" type="number" value="400" />
-            </div>
-            <div>
-              <label for="frequency">Frequency (Hz)</label>
-              <input id="frequency" type="number" value="50" />
-            </div>
-          </div>
-          <div class="grid cols-4" style="margin-top:14px;">
-            <div>
-              <label for="loadMode">Load input type</label>
-              <select id="loadMode">
-                <option value="kw">kW</option>
-                <option value="kva">kVA</option>
-                <option value="a">A</option>
-              </select>
-            </div>
-            <div>
-              <label for="loadValue">Load value</label>
-              <input id="loadValue" type="number" value="250" />
-            </div>
-            <div>
-              <label for="pf">Power factor</label>
-              <input id="pf" type="number" step="0.01" value="0.9" />
-            </div>
-            <div>
-              <label for="distance">Cable distance (m)</label>
-              <input id="distance" type="number" value="80" />
-            </div>
-          </div>
+    <div class="card">
+      <div class="section-head">
+        <h3>Workbook Source</h3>
+        <span class="small">Default: cable_data.xlsx</span>
+      </div>
+      <div class="grid cols-2">
+        <div>
+          <label for="fileInput">Upload replacement workbook</label>
+          <input id="fileInput" type="file" accept=".xlsx" />
         </div>
-
-        <div class="section">
-          <div class="section-header">
-            <h3>Active Cable</h3>
-            <span class="muted">Conductor and installation</span>
-          </div>
-          <div class="grid cols-4">
-            <div>
-              <label for="conductor">Conductor</label>
-              <select id="conductor">
-                <option value="copper">Copper</option>
-                <option value="aluminium">Aluminium</option>
-              </select>
-            </div>
-            <div>
-              <label for="insulation">Insulation</label>
-              <select id="insulation">
-                <option value="xlpe">XLPE X-90</option>
-                <option value="pvc">PVC V-90</option>
-              </select>
-            </div>
-            <div>
-              <label for="cableType">Cable type</label>
-              <select id="cableType">
-                <option value="multicore">Multi-core</option>
-                <option value="singlecore">Single-core set</option>
-              </select>
-            </div>
-            <div>
-              <label for="size">Cable size (mm²)</label>
-              <select id="size"></select>
-            </div>
-          </div>
-          <div class="grid cols-4" style="margin-top:14px;">
-            <div>
-              <label for="parallel">Parallel runs</label>
-              <input id="parallel" type="number" min="1" max="10" value="1" />
-            </div>
-            <div>
-              <label for="ambient">Ambient air (°C)</label>
-              <input id="ambient" type="number" value="30" />
-            </div>
-            <div>
-              <label for="soilTemp">Soil temp (°C)</label>
-              <input id="soilTemp" type="number" value="15" />
-            </div>
-            <div>
-              <label for="maxVd">Max voltage drop (%)</label>
-              <input id="maxVd" type="number" step="0.1" value="5" />
-            </div>
-          </div>
-        </div>
-
-        <div class="section">
-          <div class="section-header">
-            <h3>Installation & Derating</h3>
-            <span class="muted">Simplified assumptions for clone version</span>
-          </div>
-          <div class="grid cols-3">
-            <div>
-              <label for="install">Installation method</label>
-              <select id="install">
-                <option value="air">In air / tray</option>
-                <option value="conduit">In conduit</option>
-                <option value="buried">Direct buried</option>
-              </select>
-            </div>
-            <div>
-              <label for="grouping">Grouping factor</label>
-              <input id="grouping" type="number" step="0.01" value="1" />
-            </div>
-            <div>
-              <label for="thermal">Thermal resistivity factor</label>
-              <input id="thermal" type="number" step="0.01" value="1" />
-            </div>
-          </div>
-          <div class="grid cols-2" style="margin-top:14px;">
-            <div class="switch">
-              <div>
-                <div>Check short-circuit withstand</div>
-                <div class="muted">Adiabatic-style simplified check</div>
-              </div>
-              <input id="checkSc" type="checkbox" checked />
-            </div>
-            <div class="switch">
-              <div>
-                <div>Auto-suggest next size</div>
-                <div class="muted">Flags if selected cable fails criteria</div>
-              </div>
-              <input id="autoSuggest" type="checkbox" checked />
-            </div>
-          </div>
-        </div>
-
-        <div class="section" id="hvSection" style="display:none;">
-          <div class="section-header">
-            <h3>HV Inputs</h3>
-            <span class="muted">Extra fields visible in HV mode</span>
-          </div>
-          <div class="grid cols-4">
-            <div>
-              <label for="hvFault">System fault level (kA)</label>
-              <input id="hvFault" type="number" value="25" />
-            </div>
-            <div>
-              <label for="hvTime">Fault duration (s)</label>
-              <input id="hvTime" type="number" step="0.01" value="1" />
-            </div>
-            <div>
-              <label for="burialDepth">Burial depth (m)</label>
-              <input id="burialDepth" type="number" step="0.01" value="0.8" />
-            </div>
-            <div>
-              <label for="soilRho">Soil thermal resistivity (K·m/W)</label>
-              <input id="soilRho" type="number" step="0.01" value="1.2" />
-            </div>
-          </div>
+        <div>
+          <label>&nbsp;</label>
+          <button id="reloadBtn" class="btn-primary">Reload bundled workbook</button>
         </div>
       </div>
-
-      <aside class="card panel">
-        <div class="section">
-          <div class="section-header">
-            <h2>Results</h2>
-            <span class="muted">Live summary</span>
-          </div>
-          <div class="result-grid">
-            <div class="metric">
-              <div class="label">Design current</div>
-              <div class="value" id="outCurrent">0 A</div>
-            </div>
-            <div class="metric">
-              <div class="label">Current capacity</div>
-              <div class="value" id="outCapacity">0 A</div>
-            </div>
-            <div class="metric">
-              <div class="label">Voltage drop</div>
-              <div class="value" id="outVd">0 %</div>
-            </div>
-            <div class="metric">
-              <div class="label">Short-circuit</div>
-              <div class="value" id="outSc">OK</div>
-            </div>
-          </div>
-          <div id="statusBox" class="status ok" style="margin-top:14px;">Ready.</div>
-          <div class="actions">
-            <button class="action primary" id="calcBtn">Recalculate</button>
-            <button class="action secondary" id="resetBtn">Reset</button>
-          </div>
-          <div class="note">
-            This clone intentionally uses simplified calculations and a compact internal library to emulate the workflow and layout. For a production engineering tool, replace the library and formula set with your verified AS/NZS 3008 and AS/NZS 3000 logic.
-          </div>
-        </div>
-      </aside>
+      <div class="status warn" id="sourceStatus">Loading bundled workbook...</div>
     </div>
+  </section>
+
+  <div class="tabs">
+    <button class="tab active" data-class="LV">LV</button>
+    <button class="tab" data-class="MV">MV</button>
+    <button class="tab" data-class="HV">HV</button>
   </div>
 
-  <script>
-    const cableLibrary = {
-      copper: {
-        1: { area: 1, amp: 14, r: 18.1, sc: 0.143 },
-        1.5: { area: 1.5, amp: 18, r: 12.1, sc: 0.215 },
-        2.5: { area: 2.5, amp: 24, r: 7.41, sc: 0.358 },
-        4: { area: 4, amp: 32, r: 4.61, sc: 0.572 },
-        6: { area: 6, amp: 41, r: 3.08, sc: 0.858 },
-        10: { area: 10, amp: 57, r: 1.83, sc: 1.43 },
-        16: { area: 16, amp: 76, r: 1.15, sc: 2.29 },
-        25: { area: 25, amp: 101, r: 0.727, sc: 3.58 },
-        35: { area: 35, amp: 125, r: 0.524, sc: 5.01 },
-        50: { area: 50, amp: 150, r: 0.387, sc: 7.15 },
-        70: { area: 70, amp: 192, r: 0.268, sc: 10.01 },
-        95: { area: 95, amp: 232, r: 0.193, sc: 13.59 },
-        120: { area: 120, amp: 269, r: 0.153, sc: 17.17 },
-        150: { area: 150, amp: 309, r: 0.124, sc: 21.46 },
-        185: { area: 185, amp: 353, r: 0.0991, sc: 26.46 },
-        240: { area: 240, amp: 415, r: 0.0754, sc: 34.34 },
-        300: { area: 300, amp: 477, r: 0.0601, sc: 42.92 },
-        400: { area: 400, amp: 547, r: 0.047, sc: 57.22 }
-      },
-      aluminium: {
-        16: { area: 16, amp: 61, r: 1.91, sc: 1.51 },
-        25: { area: 25, amp: 81, r: 1.20, sc: 2.37 },
-        35: { area: 35, amp: 100, r: 0.868, sc: 3.32 },
-        50: { area: 50, amp: 120, r: 0.641, sc: 4.74 },
-        70: { area: 70, amp: 154, r: 0.443, sc: 6.64 },
-        95: { area: 95, amp: 186, r: 0.32, sc: 9.01 },
-        120: { area: 120, amp: 215, r: 0.253, sc: 11.38 },
-        150: { area: 150, amp: 247, r: 0.206, sc: 14.22 },
-        185: { area: 185, amp: 282, r: 0.164, sc: 17.54 },
-        240: { area: 240, amp: 332, r: 0.125, sc: 22.76 },
-        300: { area: 300, amp: 382, r: 0.1, sc: 28.45 },
-        400: { area: 400, amp: 438, r: 0.0778, sc: 37.94 }
-      }
-    };
+  <div class="layout">
+    <div class="card">
+      <div class="section">
+        <div class="section-head">
+          <h2>Inputs</h2>
+          <span class="small">Workbook-driven family selector</span>
+        </div>
+        <div class="grid cols-4">
+          <div>
+            <label for="familySelect">Cable family</label>
+            <select id="familySelect"></select>
+          </div>
+          <div>
+            <label for="sizeSelect">Size (mm²)</label>
+            <select id="sizeSelect"></select>
+          </div>
+          <div>
+            <label for="installSelect">Installation / rating column</label>
+            <select id="installSelect"></select>
+          </div>
+          <div>
+            <label for="autoSelect">Sizing mode</label>
+            <select id="autoSelect">
+              <option value="manual">Manual selected size</option>
+              <option value="auto">Auto smallest passing size</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid cols-4" style="margin-top:14px;">
+          <div>
+            <label for="phaseSelect">System type</label>
+            <select id="phaseSelect">
+              <option value="3">3 phase AC</option>
+              <option value="1">1 phase AC</option>
+              <option value="dc">DC</option>
+            </select>
+          </div>
+          <div>
+            <label for="voltageInput">Voltage</label>
+            <input id="voltageInput" type="number" value="400" />
+          </div>
+          <div>
+            <label for="voltageUnit">Unit</label>
+            <select id="voltageUnit">
+              <option value="V">V</option>
+              <option value="kV">kV</option>
+            </select>
+          </div>
+          <div>
+            <label for="distanceInput">Route length (m)</label>
+            <input id="distanceInput" type="number" value="80" />
+          </div>
+        </div>
+        <div class="grid cols-4" style="margin-top:14px;">
+          <div>
+            <label for="loadMode">Load input</label>
+            <select id="loadMode">
+              <option value="kw">kW</option>
+              <option value="kva">kVA</option>
+              <option value="a">A</option>
+            </select>
+          </div>
+          <div>
+            <label for="loadValue">Load value</label>
+            <input id="loadValue" type="number" value="250" />
+          </div>
+          <div>
+            <label for="pfInput">Power factor</label>
+            <input id="pfInput" type="number" step="0.01" value="0.9" />
+          </div>
+          <div>
+            <label for="maxVdInput">Max voltage drop (%)</label>
+            <input id="maxVdInput" type="number" step="0.1" value="5" />
+          </div>
+        </div>
+        <div class="grid cols-4" style="margin-top:14px;">
+          <div>
+            <label for="deratingInput">Manual derating factor</label>
+            <input id="deratingInput" type="number" step="0.01" value="1" />
+          </div>
+          <div>
+            <label for="faultInput">Fault level (kA)</label>
+            <input id="faultInput" type="number" step="0.1" value="6" />
+          </div>
+          <div>
+            <label for="faultTimeInput">Fault duration (s)</label>
+            <input id="faultTimeInput" type="number" step="0.01" value="0.2" />
+          </div>
+          <div>
+            <label for="screenCheck">Screen check</label>
+            <select id="screenCheck">
+              <option value="on">Enabled</option>
+              <option value="off">Disabled</option>
+            </select>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="calcBtn" class="btn-primary">Recalculate</button>
+          <button id="resetBtn">Reset</button>
+        </div>
+      </div>
 
-    const defaultState = {
-      region: 'nz', phase: '3', voltage: 400, frequency: 50,
-      loadMode: 'kw', loadValue: 250, pf: 0.9, distance: 80,
-      conductor: 'copper', insulation: 'xlpe', cableType: 'multicore', size: '95',
-      parallel: 1, ambient: 30, soilTemp: 15, maxVd: 5,
-      install: 'air', grouping: 1, thermal: 1,
-      checkSc: true, autoSuggest: true,
-      hvFault: 25, hvTime: 1, burialDepth: 0.8, soilRho: 1.2
-    };
+      <div class="section">
+        <div class="section-head">
+          <h3>All cable rows in selected family</h3>
+          <span class="small">Live view from workbook</span>
+        </div>
+        <div class="table-wrap">
+          <table id="familyTable"></table>
+        </div>
+      </div>
+    </div>
 
-    const ids = [
-      'region','phase','voltage','frequency','loadMode','loadValue','pf','distance',
-      'conductor','insulation','cableType','size','parallel','ambient','soilTemp','maxVd',
-      'install','grouping','thermal','checkSc','autoSuggest','hvFault','hvTime','burialDepth','soilRho'
-    ];
+    <div class="card">
+      <div class="section-head">
+        <h2>Result</h2>
+        <span class="small">Selected row + calculation</span>
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="k">Design current</div><div class="v" id="outCurrent">-</div></div>
+        <div class="metric"><div class="k">Derated ampacity</div><div class="v" id="outAmpacity">-</div></div>
+        <div class="metric"><div class="k">Voltage drop</div><div class="v" id="outVd">-</div></div>
+        <div class="metric"><div class="k">Short-circuit available</div><div class="v" id="outSc">-</div></div>
+      </div>
+      <div id="resultStatus" class="status warn">Waiting for workbook.</div>
+      <div class="codebox" id="selectedData">Selected cable data will appear here.</div>
+    </div>
+  </div>
+</div>
 
-    let currentTab = 'lv';
+<script>
+const state = {
+  workbook: null,
+  data: { LV: [], MV: [], HV: [] },
+  currentClass: 'LV'
+};
 
-    function el(id) { return document.getElementById(id); }
+const el = id => document.getElementById(id);
+const tabs = document.querySelectorAll('.tab');
 
-    function populateSizes() {
-      const conductor = el('conductor').value;
-      const sizeSelect = el('size');
-      const keys = Object.keys(cableLibrary[conductor]).map(Number).sort((a, b) => a - b);
-      sizeSelect.innerHTML = keys.map(k => `<option value="${k}">${k}</option>`).join('');
-      if (!keys.includes(Number(defaultState.size))) {
-        sizeSelect.value = String(keys[0]);
-      } else {
-        sizeSelect.value = defaultState.size;
-      }
-    }
+function safeNum(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
 
-    function readState() {
-      return {
-        region: el('region').value,
-        phase: el('phase').value,
-        voltage: Number(el('voltage').value),
-        frequency: Number(el('frequency').value),
-        loadMode: el('loadMode').value,
-        loadValue: Number(el('loadValue').value),
-        pf: Number(el('pf').value) || 1,
-        distance: Number(el('distance').value),
-        conductor: el('conductor').value,
-        insulation: el('insulation').value,
-        cableType: el('cableType').value,
-        size: Number(el('size').value),
-        parallel: Number(el('parallel').value) || 1,
-        ambient: Number(el('ambient').value),
-        soilTemp: Number(el('soilTemp').value),
-        maxVd: Number(el('maxVd').value),
-        install: el('install').value,
-        grouping: Number(el('grouping').value) || 1,
-        thermal: Number(el('thermal').value) || 1,
-        checkSc: el('checkSc').checked,
-        autoSuggest: el('autoSuggest').checked,
-        hvFault: Number(el('hvFault').value),
-        hvTime: Number(el('hvTime').value),
-        burialDepth: Number(el('burialDepth').value),
-        soilRho: Number(el('soilRho').value)
-      };
-    }
+function sheetToObjects(wb, name) {
+  const ws = wb.Sheets[name];
+  if (!ws) return [];
+  return XLSX.utils.sheet_to_json(ws, { defval: null });
+}
 
-    function designCurrent(s) {
-      if (s.loadMode === 'a') return s.loadValue;
-      if (s.loadMode === 'kva') {
-        if (s.phase === '3') return (s.loadValue * 1000) / (Math.sqrt(3) * s.voltage);
-        return (s.loadValue * 1000) / s.voltage;
-      }
-      if (s.phase === '3') return (s.loadValue * 1000) / (Math.sqrt(3) * s.voltage * s.pf);
-      return (s.loadValue * 1000) / (s.voltage * s.pf);
-    }
+async function loadBundledWorkbook() {
+  const res = await fetch('cable_data.xlsx');
+  if (!res.ok) throw new Error('Bundled workbook not found.');
+  const ab = await res.arrayBuffer();
+  loadWorkbookArrayBuffer(ab, 'bundled workbook');
+}
 
-    function tempFactor(s) {
-      const base = s.region === 'nz' ? 30 : 40;
-      const delta = Math.max(0, s.ambient - base);
-      return Math.max(0.72, 1 - delta * 0.01);
-    }
+function loadWorkbookArrayBuffer(ab, label) {
+  const wb = XLSX.read(ab, { type: 'array' });
+  state.workbook = wb;
+  state.data.LV = sheetToObjects(wb, 'LV_CalcData');
+  state.data.MV = sheetToObjects(wb, 'MV_CalcData');
+  state.data.HV = sheetToObjects(wb, 'HV_CalcData');
+  el('sourceStatus').className = 'status ok';
+  el('sourceStatus').textContent = `Loaded ${label}. LV rows: ${state.data.LV.length}, MV rows: ${state.data.MV.length}, HV rows: ${state.data.HV.length}.`;
+  resetForClass(state.currentClass);
+}
 
-    function installFactor(s) {
-      if (s.install === 'air') return 1;
-      if (s.install === 'conduit') return 0.93;
-      if (s.install === 'buried') return 0.9;
-      return 1;
-    }
+function currentRows() {
+  return state.data[state.currentClass] || [];
+}
 
-    function cableCapacity(s, lib) {
-      return lib.amp * tempFactor(s) * installFactor(s) * s.grouping * s.thermal * s.parallel;
-    }
+function uniqueFamilies(rows) {
+  return [...new Set(rows.map(r => r.family_id).filter(Boolean))].sort();
+}
 
-    function voltageDropPercent(s, current, lib) {
-      const phaseFactor = s.phase === '3' ? Math.sqrt(3) : 2;
-      const resistance = lib.r / s.parallel;
-      const vd = phaseFactor * current * resistance * (s.distance / 1000);
-      return (vd / s.voltage) * 100;
-    }
+function rowsForFamily() {
+  return currentRows().filter(r => r.family_id === el('familySelect').value);
+}
 
-    function scPass(s, lib) {
-      const faultKA = currentTab === 'hv' ? s.hvFault : Math.max(6, designCurrent(s) * 0.08);
-      const time = currentTab === 'hv' ? s.hvTime : 0.2;
-      const required = faultKA * Math.sqrt(time);
-      return lib.sc >= required;
-    }
+function sizesForFamily(rows) {
+  return [...new Set(rows.map(r => Number(r.size_mm2)).filter(v => Number.isFinite(v)))].sort((a,b) => a-b);
+}
 
-    function nextPassingSize(s, current) {
-      const entries = Object.values(cableLibrary[s.conductor]).sort((a,b) => a.area - b.area);
-      for (const lib of entries) {
-        const cap = cableCapacity(s, lib);
-        const vd = voltageDropPercent(s, current, lib);
-        const sc = scPass(s, lib);
-        if (cap >= current && vd <= s.maxVd && (!s.checkSc || sc)) return lib.area;
-      }
-      return null;
-    }
+function installationOptions() {
+  if (state.currentClass === 'LV') {
+    const sample = rowsForFamily()[0] || {};
+    return Object.keys(sample)
+      .filter(k => /^ampacity_col_\d+_A$/.test(k))
+      .sort((a,b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]))
+      .map(k => ({ value: k, label: k.replaceAll('_', ' ') }));
+  }
+  return [
+    { value: 'ampacity_air_A', label: 'Air' },
+    { value: 'ampacity_direct_buried_A', label: 'Direct buried' },
+    { value: 'ampacity_duct_A', label: 'Duct' }
+  ];
+}
 
-    function render() {
-      const s = readState();
-      const lib = cableLibrary[s.conductor][s.size];
-      const current = designCurrent(s);
-      const capacity = cableCapacity(s, lib);
-      const vd = voltageDropPercent(s, current, lib);
-      const scOk = s.checkSc ? scPass(s, lib) : true;
-      const currentOk = capacity >= current;
-      const vdOk = vd <= s.maxVd;
-      const allOk = currentOk && vdOk && scOk;
-      const suggestion = s.autoSuggest && !allOk ? nextPassingSize(s, current) : null;
+function voltageVolts() {
+  const v = safeNum(el('voltageInput').value) || 0;
+  return el('voltageUnit').value === 'kV' ? v * 1000 : v;
+}
 
-      el('outCurrent').textContent = `${current.toFixed(1)} A`;
-      el('outCapacity').textContent = `${capacity.toFixed(1)} A`;
-      el('outVd').textContent = `${vd.toFixed(2)} %`;
-      el('outSc').textContent = scOk ? 'PASS' : 'FAIL';
+function designCurrent() {
+  const phase = el('phaseSelect').value;
+  const V = voltageVolts();
+  const mode = el('loadMode').value;
+  const load = safeNum(el('loadValue').value) || 0;
+  const pf = safeNum(el('pfInput').value) || 1;
+  if (mode === 'a') return load;
+  if (mode === 'kva') return phase === '3' ? (load * 1000) / (Math.sqrt(3) * V) : (load * 1000) / V;
+  return phase === '3' ? (load * 1000) / (Math.sqrt(3) * V * pf) : (load * 1000) / (V * pf);
+}
 
-      const box = el('statusBox');
-      if (allOk) {
-        box.className = 'status ok';
-        box.textContent = `Selected ${s.size} mm² ${s.conductor} cable passes the simplified current, voltage drop, and short-circuit checks for this ${currentTab.toUpperCase()} case.`;
-      } else {
-        const issues = [];
-        if (!currentOk) issues.push('current capacity');
-        if (!vdOk) issues.push('voltage drop');
-        if (!scOk) issues.push('short-circuit withstand');
-        box.className = issues.length > 1 ? 'status bad' : 'status warn';
-        box.textContent = `Selected ${s.size} mm² cable does not pass: ${issues.join(', ')}.` + (suggestion ? ` Suggested next passing size: ${suggestion} mm².` : ' No passing size found in the compact library.');
-      }
-    }
+function voltageDropPct(row) {
+  const I = designCurrent();
+  const L = (safeNum(el('distanceInput').value) || 0) / 1000;
+  const V = voltageVolts();
+  const pf = safeNum(el('pfInput').value) || 1;
+  const R = safeNum(row.resistance_ohm_per_km_90C) || 0;
+  const X = safeNum(row.reactance_ohm_per_km_default || row.reactance_ohm_per_km) || 0;
+  const phase = el('phaseSelect').value;
+  const sinPhi = Math.sqrt(Math.max(0, 1 - pf * pf));
+  let vd = 0;
+  if (phase === '3') vd = Math.sqrt(3) * I * ((R * pf) + (X * sinPhi)) * L;
+  else vd = 2 * I * ((R * pf) + (X * sinPhi)) * L;
+  return V ? (vd / V) * 100 : 0;
+}
 
-    function resetForm() {
-      Object.entries(defaultState).forEach(([key, value]) => {
-        const node = el(key);
-        if (!node) return;
-        if (node.type === 'checkbox') node.checked = value;
-        else node.value = value;
-      });
-      populateSizes();
-      el('size').value = defaultState.size;
-      render();
-    }
+function shortCircuitAvailable(row) {
+  const t = Math.max(safeNum(el('faultTimeInput').value) || 1, 0.001);
+  const conductor = safeNum(row.short_circuit_kA_1s) || null;
+  if (conductor === null) return null;
+  return conductor / Math.sqrt(t);
+}
 
-    document.querySelectorAll('.tab').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentTab = btn.dataset.tab;
-        el('hvSection').style.display = currentTab === 'hv' ? 'block' : 'none';
-        if (currentTab === 'hv' && Number(el('voltage').value) < 1000) el('voltage').value = 11000;
-        if (currentTab === 'lv' && Number(el('voltage').value) > 1000) el('voltage').value = 400;
-        render();
-      });
-    });
+function screenAvailable(row) {
+  const t = Math.max(safeNum(el('faultTimeInput').value) || 1, 0.001);
+  const screen = safeNum(row.screen_kA_1s) || null;
+  if (screen === null) return null;
+  return screen / Math.sqrt(t);
+}
 
-    ids.forEach(id => {
-      const node = el(id);
-      if (!node) return;
-      node.addEventListener('input', () => {
-        if (id === 'conductor') populateSizes();
-        render();
-      });
-      node.addEventListener('change', () => {
-        if (id === 'conductor') populateSizes();
-        render();
-      });
-    });
+function ampacityForRow(row) {
+  const key = el('installSelect').value;
+  const raw = safeNum(row[key]) || 0;
+  const der = safeNum(el('deratingInput').value) || 1;
+  return raw * der;
+}
 
-    el('calcBtn').addEventListener('click', render);
-    el('resetBtn').addEventListener('click', resetForm);
+function evaluateRow(row) {
+  const I = designCurrent();
+  const amp = ampacityForRow(row);
+  const vd = voltageDropPct(row);
+  const scAvail = shortCircuitAvailable(row);
+  const fault = safeNum(el('faultInput').value) || 0;
+  const screenOn = el('screenCheck').value === 'on';
+  const scPass = scAvail === null ? true : scAvail >= fault;
+  const screenAvail = screenAvailable(row);
+  const screenPass = !screenOn || screenAvail === null ? true : screenAvail >= fault;
+  const ampPass = amp >= I;
+  const vdPass = vd <= (safeNum(el('maxVdInput').value) || 100);
+  return {
+    row, designCurrent: I, ampacity: amp, vdPct: vd, scAvail, screenAvail,
+    pass: ampPass && vdPass && scPass && screenPass,
+    ampPass, vdPass, scPass, screenPass
+  };
+}
 
-    populateSizes();
-    render();
-  </script>
+function selectedOrAutoResult() {
+  const familyRows = rowsForFamily();
+  const mode = el('autoSelect').value;
+  if (!familyRows.length) return null;
+  const sorted = [...familyRows].sort((a,b) => Number(a.size_mm2) - Number(b.size_mm2));
+  if (mode === 'auto') {
+    const hit = sorted.map(evaluateRow).find(r => r.pass);
+    return hit || evaluateRow(sorted[0]);
+  }
+  const size = Number(el('sizeSelect').value);
+  const row = familyRows.find(r => Number(r.size_mm2) === size) || familyRows[0];
+  return evaluateRow(row);
+}
+
+function renderFamilyTable() {
+  const rows = rowsForFamily();
+  const table = el('familyTable');
+  if (!rows.length) {
+    table.innerHTML = '<tr><td>No rows in this family.</td></tr>';
+    return;
+  }
+  const cols = Object.keys(rows[0]);
+  const head = `<thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>`;
+  const body = `<tbody>${rows.map(r => `<tr>${cols.map(c => `<td>${r[c] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  table.innerHTML = head + body;
+}
+
+function refreshFamilyAndSize() {
+  const rows = currentRows();
+  const families = uniqueFamilies(rows);
+  el('familySelect').innerHTML = families.map(f => `<option value="${f}">${f}</option>`).join('');
+  if (!families.length) {
+    el('sizeSelect').innerHTML = '';
+    el('installSelect').innerHTML = '';
+    renderFamilyTable();
+    return;
+  }
+  const famRows = rowsForFamily().length ? rowsForFamily() : rows.filter(r => r.family_id === families[0]);
+  if (!rowsForFamily().length) el('familySelect').value = families[0];
+  const sizes = sizesForFamily(famRows);
+  el('sizeSelect').innerHTML = sizes.map(s => `<option value="${s}">${s}</option>`).join('');
+  const installs = installationOptions();
+  el('installSelect').innerHTML = installs.map(i => `<option value="${i.value}">${i.label}</option>`).join('');
+  renderFamilyTable();
+}
+
+function resetForClass(cls) {
+  state.currentClass = cls;
+  tabs.forEach(t => t.classList.toggle('active', t.dataset.class === cls));
+  if (cls === 'LV') {
+    el('phaseSelect').value = '3';
+    el('voltageInput').value = 400;
+    el('voltageUnit').value = 'V';
+    el('faultInput').value = 6;
+    el('faultTimeInput').value = 0.2;
+  } else if (cls === 'MV') {
+    el('phaseSelect').value = '3';
+    el('voltageInput').value = 11;
+    el('voltageUnit').value = 'kV';
+    el('faultInput').value = 10;
+    el('faultTimeInput').value = 1;
+  } else {
+    el('phaseSelect').value = '3';
+    el('voltageInput').value = 33;
+    el('voltageUnit').value = 'kV';
+    el('faultInput').value = 10;
+    el('faultTimeInput').value = 1;
+  }
+  refreshFamilyAndSize();
+  render();
+}
+
+function render() {
+  refreshFamilyAndSize();
+  const result = selectedOrAutoResult();
+  if (!result) {
+    el('resultStatus').className = 'status warn';
+    el('resultStatus').textContent = 'No rows available for this voltage class yet.';
+    el('selectedData').textContent = 'No selected cable data.';
+    el('outCurrent').textContent = '-';
+    el('outAmpacity').textContent = '-';
+    el('outVd').textContent = '-';
+    el('outSc').textContent = '-';
+    return;
+  }
+  el('sizeSelect').value = String(result.row.size_mm2);
+  el('outCurrent').textContent = `${result.designCurrent.toFixed(1)} A`;
+  el('outAmpacity').textContent = `${result.ampacity.toFixed(1)} A`;
+  el('outVd').textContent = `${result.vdPct.toFixed(2)} %`;
+  const scText = result.scAvail === null ? '-' : `${result.scAvail.toFixed(2)} kA`;
+  const screenText = result.screenAvail === null ? '' : ` | screen ${result.screenAvail.toFixed(2)} kA`;
+  el('outSc').textContent = scText + screenText;
+
+  const issues = [];
+  if (!result.ampPass) issues.push('ampacity');
+  if (!result.vdPass) issues.push('voltage drop');
+  if (!result.scPass) issues.push('conductor short-circuit');
+  if (!result.screenPass) issues.push('screen short-circuit');
+
+  const status = el('resultStatus');
+  if (result.pass) {
+    status.className = 'status ok';
+    status.textContent = `${result.row.family_id} ${result.row.size_mm2} mm² passes the active checks.`;
+  } else {
+    status.className = issues.length > 1 ? 'status bad' : 'status warn';
+    status.textContent = `${result.row.family_id} ${result.row.size_mm2} mm² does not pass: ${issues.join(', ')}.`;
+  }
+
+  el('selectedData').textContent = JSON.stringify(result.row, null, 2);
+  renderFamilyTable();
+}
+
+tabs.forEach(tab => tab.addEventListener('click', () => resetForClass(tab.dataset.class)));
+['familySelect','sizeSelect','installSelect','autoSelect','phaseSelect','voltageInput','voltageUnit','distanceInput','loadMode','loadValue','pfInput','maxVdInput','deratingInput','faultInput','faultTimeInput','screenCheck']
+  .forEach(id => el(id).addEventListener('input', render));
+
+el('calcBtn').addEventListener('click', render);
+el('resetBtn').addEventListener('click', () => resetForClass(state.currentClass));
+el('reloadBtn').addEventListener('click', async () => {
+  try { await loadBundledWorkbook(); } catch (err) {
+    el('sourceStatus').className = 'status bad';
+    el('sourceStatus').textContent = err.message;
+  }
+});
+el('fileInput').addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const ab = await file.arrayBuffer();
+  loadWorkbookArrayBuffer(ab, file.name);
+});
+
+loadBundledWorkbook().catch(err => {
+  el('sourceStatus').className = 'status bad';
+  el('sourceStatus').textContent = err.message;
+});
+</script>
 </body>
 </html>
