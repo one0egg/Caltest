@@ -1,43 +1,723 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Cable Engineering Tools</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cable Sizing Calculator</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #121a2b;
+      --panel-2: #18233a;
+      --line: #2a395b;
+      --text: #e8eefc;
+      --muted: #a8b3cf;
+      --accent: #4f8cff;
+      --accent-2: #73e0c1;
+      --danger: #ff7a7a;
+      --warning: #ffcc66;
+      --ok: #73e0c1;
+      --shadow: 0 20px 50px rgba(0,0,0,0.28);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #08101d 0%, #0f1728 100%);
+      color: var(--text);
+    }
+
+    .shell {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.4fr 0.8fr;
+      gap: 20px;
+      margin-bottom: 22px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-main {
+      padding: 26px;
+    }
+
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: clamp(30px, 4vw, 44px);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 72ch;
+    }
+
+    .hero-side {
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .pill-row, .tab-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .pill, .tab {
+      border: 1px solid var(--line);
+      color: var(--text);
+      background: var(--panel-2);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .tab.active, .pill.active {
+      background: linear-gradient(180deg, var(--accent), #2f67d9);
+      border-color: transparent;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(360px, 0.95fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      padding: 20px;
+    }
+
+    .section + .section {
+      margin-top: 18px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .section h2, .section h3 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #0f1729;
+      color: var(--text);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79,140,255,0.18);
+    }
+
+    .switch {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #0f1729;
+    }
+
+    .switch input {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--accent);
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      padding: 16px;
+      border-radius: 16px;
+      background: #0f1729;
+      border: 1px solid var(--line);
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .metric .value {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .status {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.5;
+      border: 1px solid var(--line);
+    }
+
+    .status.ok { background: rgba(115,224,193,0.08); color: #dffcf4; }
+    .status.warn { background: rgba(255,204,102,0.08); color: #fff4d4; }
+    .status.bad { background: rgba(255,122,122,0.08); color: #ffe0e0; }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    button.action {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .primary { background: linear-gradient(180deg, var(--accent), #2f67d9); color: white; }
+    .secondary { background: #1a2742; color: var(--text); border: 1px solid var(--line); }
+
+    .note {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .hide { display: none; }
+
+    @media (max-width: 1080px) {
+      .hero, .layout { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 720px) {
+      .shell { padding: 16px; }
+      .grid.cols-2, .grid.cols-3, .grid.cols-4, .result-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
-
 <body>
+  <div class="shell">
+    <section class="hero">
+      <div class="card hero-main">
+        <div class="pill-row" style="margin-bottom:14px;">
+          <span class="pill active">AS/NZS inspired</span>
+          <span class="pill">NZ-ready layout</span>
+          <span class="pill">LV + HV</span>
+        </div>
+        <h1>Cable Sizing Calculator</h1>
+        <p>
+          A clean-room calculator interface inspired by the structure of jCalc’s cable sizing page, but rebuilt as a standalone single-file web app for GitHub Pages. It includes load input, cable selection, derating, voltage drop, and simplified short-circuit checks.
+        </p>
+      </div>
+      <div class="card hero-side">
+        <div><strong>Included in this clone</strong></div>
+        <div class="muted">Tabbed LV / HV workflow, form sections, quick result summary, JSON-style cable library, and a GitHub-friendly single file.</div>
+        <div class="muted">You can later replace the simplified assumptions with full AS/NZS 3008 datasets and exact standard logic.</div>
+      </div>
+    </section>
 
-<h1>Cable Engineering Calculator</h1>
+    <div class="tab-row" style="margin-bottom:18px;">
+      <button class="tab active" data-tab="lv">LV Cable</button>
+      <button class="tab" data-tab="hv">HV Cable</button>
+    </div>
 
-<p>Welcome to my cable engineering toolbox.</p>
+    <div class="layout">
+      <div class="card panel">
+        <div class="section">
+          <div class="section-header">
+            <h2>Load & Standard</h2>
+            <span class="muted">Core project inputs</span>
+          </div>
+          <div class="grid cols-4">
+            <div>
+              <label for="region">Standard region</label>
+              <select id="region">
+                <option value="nz">New Zealand conditions</option>
+                <option value="au">Australian conditions</option>
+              </select>
+            </div>
+            <div>
+              <label for="phase">Load phase</label>
+              <select id="phase">
+                <option value="3">3 phase AC</option>
+                <option value="1">1 phase AC</option>
+                <option value="dc">DC</option>
+              </select>
+            </div>
+            <div>
+              <label for="voltage">Voltage (V)</label>
+              <input id="voltage" type="number" value="400" />
+            </div>
+            <div>
+              <label for="frequency">Frequency (Hz)</label>
+              <input id="frequency" type="number" value="50" />
+            </div>
+          </div>
+          <div class="grid cols-4" style="margin-top:14px;">
+            <div>
+              <label for="loadMode">Load input type</label>
+              <select id="loadMode">
+                <option value="kw">kW</option>
+                <option value="kva">kVA</option>
+                <option value="a">A</option>
+              </select>
+            </div>
+            <div>
+              <label for="loadValue">Load value</label>
+              <input id="loadValue" type="number" value="250" />
+            </div>
+            <div>
+              <label for="pf">Power factor</label>
+              <input id="pf" type="number" step="0.01" value="0.9" />
+            </div>
+            <div>
+              <label for="distance">Cable distance (m)</label>
+              <input id="distance" type="number" value="80" />
+            </div>
+          </div>
+        </div>
 
-<h2>LV Voltage Drop Calculator</h2>
+        <div class="section">
+          <div class="section-header">
+            <h3>Active Cable</h3>
+            <span class="muted">Conductor and installation</span>
+          </div>
+          <div class="grid cols-4">
+            <div>
+              <label for="conductor">Conductor</label>
+              <select id="conductor">
+                <option value="copper">Copper</option>
+                <option value="aluminium">Aluminium</option>
+              </select>
+            </div>
+            <div>
+              <label for="insulation">Insulation</label>
+              <select id="insulation">
+                <option value="xlpe">XLPE X-90</option>
+                <option value="pvc">PVC V-90</option>
+              </select>
+            </div>
+            <div>
+              <label for="cableType">Cable type</label>
+              <select id="cableType">
+                <option value="multicore">Multi-core</option>
+                <option value="singlecore">Single-core set</option>
+              </select>
+            </div>
+            <div>
+              <label for="size">Cable size (mm²)</label>
+              <select id="size"></select>
+            </div>
+          </div>
+          <div class="grid cols-4" style="margin-top:14px;">
+            <div>
+              <label for="parallel">Parallel runs</label>
+              <input id="parallel" type="number" min="1" max="10" value="1" />
+            </div>
+            <div>
+              <label for="ambient">Ambient air (°C)</label>
+              <input id="ambient" type="number" value="30" />
+            </div>
+            <div>
+              <label for="soilTemp">Soil temp (°C)</label>
+              <input id="soilTemp" type="number" value="15" />
+            </div>
+            <div>
+              <label for="maxVd">Max voltage drop (%)</label>
+              <input id="maxVd" type="number" step="0.1" value="5" />
+            </div>
+          </div>
+        </div>
 
-<label>Current (A)</label>
-<input id="current"><br><br>
+        <div class="section">
+          <div class="section-header">
+            <h3>Installation & Derating</h3>
+            <span class="muted">Simplified assumptions for clone version</span>
+          </div>
+          <div class="grid cols-3">
+            <div>
+              <label for="install">Installation method</label>
+              <select id="install">
+                <option value="air">In air / tray</option>
+                <option value="conduit">In conduit</option>
+                <option value="buried">Direct buried</option>
+              </select>
+            </div>
+            <div>
+              <label for="grouping">Grouping factor</label>
+              <input id="grouping" type="number" step="0.01" value="1" />
+            </div>
+            <div>
+              <label for="thermal">Thermal resistivity factor</label>
+              <input id="thermal" type="number" step="0.01" value="1" />
+            </div>
+          </div>
+          <div class="grid cols-2" style="margin-top:14px;">
+            <div class="switch">
+              <div>
+                <div>Check short-circuit withstand</div>
+                <div class="muted">Adiabatic-style simplified check</div>
+              </div>
+              <input id="checkSc" type="checkbox" checked />
+            </div>
+            <div class="switch">
+              <div>
+                <div>Auto-suggest next size</div>
+                <div class="muted">Flags if selected cable fails criteria</div>
+              </div>
+              <input id="autoSuggest" type="checkbox" checked />
+            </div>
+          </div>
+        </div>
 
-<label>Length (m)</label>
-<input id="length"><br><br>
+        <div class="section" id="hvSection" style="display:none;">
+          <div class="section-header">
+            <h3>HV Inputs</h3>
+            <span class="muted">Extra fields visible in HV mode</span>
+          </div>
+          <div class="grid cols-4">
+            <div>
+              <label for="hvFault">System fault level (kA)</label>
+              <input id="hvFault" type="number" value="25" />
+            </div>
+            <div>
+              <label for="hvTime">Fault duration (s)</label>
+              <input id="hvTime" type="number" step="0.01" value="1" />
+            </div>
+            <div>
+              <label for="burialDepth">Burial depth (m)</label>
+              <input id="burialDepth" type="number" step="0.01" value="0.8" />
+            </div>
+            <div>
+              <label for="soilRho">Soil thermal resistivity (K·m/W)</label>
+              <input id="soilRho" type="number" step="0.01" value="1.2" />
+            </div>
+          </div>
+        </div>
+      </div>
 
-<label>Impedance (Ω/km)</label>
-<input id="impedance"><br><br>
+      <aside class="card panel">
+        <div class="section">
+          <div class="section-header">
+            <h2>Results</h2>
+            <span class="muted">Live summary</span>
+          </div>
+          <div class="result-grid">
+            <div class="metric">
+              <div class="label">Design current</div>
+              <div class="value" id="outCurrent">0 A</div>
+            </div>
+            <div class="metric">
+              <div class="label">Current capacity</div>
+              <div class="value" id="outCapacity">0 A</div>
+            </div>
+            <div class="metric">
+              <div class="label">Voltage drop</div>
+              <div class="value" id="outVd">0 %</div>
+            </div>
+            <div class="metric">
+              <div class="label">Short-circuit</div>
+              <div class="value" id="outSc">OK</div>
+            </div>
+          </div>
+          <div id="statusBox" class="status ok" style="margin-top:14px;">Ready.</div>
+          <div class="actions">
+            <button class="action primary" id="calcBtn">Recalculate</button>
+            <button class="action secondary" id="resetBtn">Reset</button>
+          </div>
+          <div class="note">
+            This clone intentionally uses simplified calculations and a compact internal library to emulate the workflow and layout. For a production engineering tool, replace the library and formula set with your verified AS/NZS 3008 and AS/NZS 3000 logic.
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
 
-<button onclick="calculateVD()">Calculate</button>
+  <script>
+    const cableLibrary = {
+      copper: {
+        1: { area: 1, amp: 14, r: 18.1, sc: 0.143 },
+        1.5: { area: 1.5, amp: 18, r: 12.1, sc: 0.215 },
+        2.5: { area: 2.5, amp: 24, r: 7.41, sc: 0.358 },
+        4: { area: 4, amp: 32, r: 4.61, sc: 0.572 },
+        6: { area: 6, amp: 41, r: 3.08, sc: 0.858 },
+        10: { area: 10, amp: 57, r: 1.83, sc: 1.43 },
+        16: { area: 16, amp: 76, r: 1.15, sc: 2.29 },
+        25: { area: 25, amp: 101, r: 0.727, sc: 3.58 },
+        35: { area: 35, amp: 125, r: 0.524, sc: 5.01 },
+        50: { area: 50, amp: 150, r: 0.387, sc: 7.15 },
+        70: { area: 70, amp: 192, r: 0.268, sc: 10.01 },
+        95: { area: 95, amp: 232, r: 0.193, sc: 13.59 },
+        120: { area: 120, amp: 269, r: 0.153, sc: 17.17 },
+        150: { area: 150, amp: 309, r: 0.124, sc: 21.46 },
+        185: { area: 185, amp: 353, r: 0.0991, sc: 26.46 },
+        240: { area: 240, amp: 415, r: 0.0754, sc: 34.34 },
+        300: { area: 300, amp: 477, r: 0.0601, sc: 42.92 },
+        400: { area: 400, amp: 547, r: 0.047, sc: 57.22 }
+      },
+      aluminium: {
+        16: { area: 16, amp: 61, r: 1.91, sc: 1.51 },
+        25: { area: 25, amp: 81, r: 1.20, sc: 2.37 },
+        35: { area: 35, amp: 100, r: 0.868, sc: 3.32 },
+        50: { area: 50, amp: 120, r: 0.641, sc: 4.74 },
+        70: { area: 70, amp: 154, r: 0.443, sc: 6.64 },
+        95: { area: 95, amp: 186, r: 0.32, sc: 9.01 },
+        120: { area: 120, amp: 215, r: 0.253, sc: 11.38 },
+        150: { area: 150, amp: 247, r: 0.206, sc: 14.22 },
+        185: { area: 185, amp: 282, r: 0.164, sc: 17.54 },
+        240: { area: 240, amp: 332, r: 0.125, sc: 22.76 },
+        300: { area: 300, amp: 382, r: 0.1, sc: 28.45 },
+        400: { area: 400, amp: 438, r: 0.0778, sc: 37.94 }
+      }
+    };
 
-<p id="result"></p>
+    const defaultState = {
+      region: 'nz', phase: '3', voltage: 400, frequency: 50,
+      loadMode: 'kw', loadValue: 250, pf: 0.9, distance: 80,
+      conductor: 'copper', insulation: 'xlpe', cableType: 'multicore', size: '95',
+      parallel: 1, ambient: 30, soilTemp: 15, maxVd: 5,
+      install: 'air', grouping: 1, thermal: 1,
+      checkSc: true, autoSuggest: true,
+      hvFault: 25, hvTime: 1, burialDepth: 0.8, soilRho: 1.2
+    };
 
-<script>
-function calculateVD(){
+    const ids = [
+      'region','phase','voltage','frequency','loadMode','loadValue','pf','distance',
+      'conductor','insulation','cableType','size','parallel','ambient','soilTemp','maxVd',
+      'install','grouping','thermal','checkSc','autoSuggest','hvFault','hvTime','burialDepth','soilRho'
+    ];
 
-let I = document.getElementById("current").value
-let L = document.getElementById("length").value
-let Z = document.getElementById("impedance").value
+    let currentTab = 'lv';
 
-let VD = (I * L * 2 * Z)/1000
+    function el(id) { return document.getElementById(id); }
 
-document.getElementById("result").innerHTML =
-"Voltage Drop = " + VD.toFixed(2) + " V"
-}
-</script>
+    function populateSizes() {
+      const conductor = el('conductor').value;
+      const sizeSelect = el('size');
+      const keys = Object.keys(cableLibrary[conductor]).map(Number).sort((a, b) => a - b);
+      sizeSelect.innerHTML = keys.map(k => `<option value="${k}">${k}</option>`).join('');
+      if (!keys.includes(Number(defaultState.size))) {
+        sizeSelect.value = String(keys[0]);
+      } else {
+        sizeSelect.value = defaultState.size;
+      }
+    }
 
+    function readState() {
+      return {
+        region: el('region').value,
+        phase: el('phase').value,
+        voltage: Number(el('voltage').value),
+        frequency: Number(el('frequency').value),
+        loadMode: el('loadMode').value,
+        loadValue: Number(el('loadValue').value),
+        pf: Number(el('pf').value) || 1,
+        distance: Number(el('distance').value),
+        conductor: el('conductor').value,
+        insulation: el('insulation').value,
+        cableType: el('cableType').value,
+        size: Number(el('size').value),
+        parallel: Number(el('parallel').value) || 1,
+        ambient: Number(el('ambient').value),
+        soilTemp: Number(el('soilTemp').value),
+        maxVd: Number(el('maxVd').value),
+        install: el('install').value,
+        grouping: Number(el('grouping').value) || 1,
+        thermal: Number(el('thermal').value) || 1,
+        checkSc: el('checkSc').checked,
+        autoSuggest: el('autoSuggest').checked,
+        hvFault: Number(el('hvFault').value),
+        hvTime: Number(el('hvTime').value),
+        burialDepth: Number(el('burialDepth').value),
+        soilRho: Number(el('soilRho').value)
+      };
+    }
+
+    function designCurrent(s) {
+      if (s.loadMode === 'a') return s.loadValue;
+      if (s.loadMode === 'kva') {
+        if (s.phase === '3') return (s.loadValue * 1000) / (Math.sqrt(3) * s.voltage);
+        return (s.loadValue * 1000) / s.voltage;
+      }
+      if (s.phase === '3') return (s.loadValue * 1000) / (Math.sqrt(3) * s.voltage * s.pf);
+      return (s.loadValue * 1000) / (s.voltage * s.pf);
+    }
+
+    function tempFactor(s) {
+      const base = s.region === 'nz' ? 30 : 40;
+      const delta = Math.max(0, s.ambient - base);
+      return Math.max(0.72, 1 - delta * 0.01);
+    }
+
+    function installFactor(s) {
+      if (s.install === 'air') return 1;
+      if (s.install === 'conduit') return 0.93;
+      if (s.install === 'buried') return 0.9;
+      return 1;
+    }
+
+    function cableCapacity(s, lib) {
+      return lib.amp * tempFactor(s) * installFactor(s) * s.grouping * s.thermal * s.parallel;
+    }
+
+    function voltageDropPercent(s, current, lib) {
+      const phaseFactor = s.phase === '3' ? Math.sqrt(3) : 2;
+      const resistance = lib.r / s.parallel;
+      const vd = phaseFactor * current * resistance * (s.distance / 1000);
+      return (vd / s.voltage) * 100;
+    }
+
+    function scPass(s, lib) {
+      const faultKA = currentTab === 'hv' ? s.hvFault : Math.max(6, designCurrent(s) * 0.08);
+      const time = currentTab === 'hv' ? s.hvTime : 0.2;
+      const required = faultKA * Math.sqrt(time);
+      return lib.sc >= required;
+    }
+
+    function nextPassingSize(s, current) {
+      const entries = Object.values(cableLibrary[s.conductor]).sort((a,b) => a.area - b.area);
+      for (const lib of entries) {
+        const cap = cableCapacity(s, lib);
+        const vd = voltageDropPercent(s, current, lib);
+        const sc = scPass(s, lib);
+        if (cap >= current && vd <= s.maxVd && (!s.checkSc || sc)) return lib.area;
+      }
+      return null;
+    }
+
+    function render() {
+      const s = readState();
+      const lib = cableLibrary[s.conductor][s.size];
+      const current = designCurrent(s);
+      const capacity = cableCapacity(s, lib);
+      const vd = voltageDropPercent(s, current, lib);
+      const scOk = s.checkSc ? scPass(s, lib) : true;
+      const currentOk = capacity >= current;
+      const vdOk = vd <= s.maxVd;
+      const allOk = currentOk && vdOk && scOk;
+      const suggestion = s.autoSuggest && !allOk ? nextPassingSize(s, current) : null;
+
+      el('outCurrent').textContent = `${current.toFixed(1)} A`;
+      el('outCapacity').textContent = `${capacity.toFixed(1)} A`;
+      el('outVd').textContent = `${vd.toFixed(2)} %`;
+      el('outSc').textContent = scOk ? 'PASS' : 'FAIL';
+
+      const box = el('statusBox');
+      if (allOk) {
+        box.className = 'status ok';
+        box.textContent = `Selected ${s.size} mm² ${s.conductor} cable passes the simplified current, voltage drop, and short-circuit checks for this ${currentTab.toUpperCase()} case.`;
+      } else {
+        const issues = [];
+        if (!currentOk) issues.push('current capacity');
+        if (!vdOk) issues.push('voltage drop');
+        if (!scOk) issues.push('short-circuit withstand');
+        box.className = issues.length > 1 ? 'status bad' : 'status warn';
+        box.textContent = `Selected ${s.size} mm² cable does not pass: ${issues.join(', ')}.` + (suggestion ? ` Suggested next passing size: ${suggestion} mm².` : ' No passing size found in the compact library.');
+      }
+    }
+
+    function resetForm() {
+      Object.entries(defaultState).forEach(([key, value]) => {
+        const node = el(key);
+        if (!node) return;
+        if (node.type === 'checkbox') node.checked = value;
+        else node.value = value;
+      });
+      populateSizes();
+      el('size').value = defaultState.size;
+      render();
+    }
+
+    document.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentTab = btn.dataset.tab;
+        el('hvSection').style.display = currentTab === 'hv' ? 'block' : 'none';
+        if (currentTab === 'hv' && Number(el('voltage').value) < 1000) el('voltage').value = 11000;
+        if (currentTab === 'lv' && Number(el('voltage').value) > 1000) el('voltage').value = 400;
+        render();
+      });
+    });
+
+    ids.forEach(id => {
+      const node = el(id);
+      if (!node) return;
+      node.addEventListener('input', () => {
+        if (id === 'conductor') populateSizes();
+        render();
+      });
+      node.addEventListener('change', () => {
+        if (id === 'conductor') populateSizes();
+        render();
+      });
+    });
+
+    el('calcBtn').addEventListener('click', render);
+    el('resetBtn').addEventListener('click', resetForm);
+
+    populateSizes();
+    render();
+  </script>
 </body>
 </html>
