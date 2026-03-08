@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Cable Engineering Tools</title>
+</head>
+
+<body>
+
+<h1>Cable Engineering Calculator</h1>
+
+<p>Welcome to my cable engineering toolbox.</p>
+
+<h2>LV Voltage Drop Calculator</h2>
+
+<label>Current (A)</label>
+<input id="current"><br><br>
+
+<label>Length (m)</label>
+<input id="length"><br><br>
+
+<label>Impedance (Ω/km)</label>
+<input id="impedance"><br><br>
+
+<button onclick="calculateVD()">Calculate</button>
+
+<p id="result"></p>
+
+<script>
+function calculateVD(){
+
+let I = document.getElementById("current").value
+let L = document.getElementById("length").value
+let Z = document.getElementById("impedance").value
+
+let VD = (I * L * 2 * Z)/1000
+
+document.getElementById("result").innerHTML =
+"Voltage Drop = " + VD.toFixed(2) + " V"
+}
+</script>
+
+</body>
+</html>
